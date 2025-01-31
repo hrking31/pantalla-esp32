@@ -50,7 +50,7 @@ logger:
 # Enable Home Assistant API
 api:
   encryption:
-    key: "Ez2mnCy5ht/YQ5PsL8fXS6PRfGhWy56wJRPltNy3zlw="
+    key: !secret api_key
 
   on_client_connected:
     - if:
@@ -67,21 +67,21 @@ api:
 
 ota:
   - platform: esphome
-    password: "6461d7f6c08ab6eef53f73e8aa89ef03"
+    password: !secret ota_password
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
 
   manual_ip:
-    static_ip: 192.168.1.12
-    gateway: 177.255.192.1
-    subnet: 255.255.248.0
+    static_ip: !secret ip_pantalla-esp32
+    gateway: !secret gateway
+    subnet: !secret subnet
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Espantalla Fallback Hotspot"
-    password: "SwKkRHOP19nh"
+    ssid: !secret ap_ssid
+    password: !secret ap_password
 
 captive_portal:
 
