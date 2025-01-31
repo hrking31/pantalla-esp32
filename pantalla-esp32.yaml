@@ -1,0 +1,1344 @@
+substitutions:
+  name: espantalla
+  friendly_name: ESPANTALLA
+
+  lightbulb: "\U000F0335"
+  light_recessed: "\U000F179B"
+  lamp: "\U000F06B5"
+  floor_lamp: "\U000F08DD"
+  string_lights: "\U000F12BA"
+  clock: "\U000F0150"
+  fan: "\U000F0210"
+  blinds_horizontal: "\U000F1A2B"
+  blinds_horizontal_closed: "\U000F1A2C"
+  curtains_closed: "\U000F1847"
+  curtains: "\U000F1846"
+  wallsconce: "\U000F091C"
+  bed: "\U000F02E3"
+  bed_empty: "\U000F08A0"
+  thermometer_high: "\U000F10C2"
+  humidity: "\U000F058E"
+  wifi: "\U000F05A9"
+  power: "\U000F0425"
+  OutdoorLamp: "\U000F1054"
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      COMPILER_OPTIMIZATION_SIZE: y
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
+      CONFIG_SPIRAM_RODATA: y
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "Ez2mnCy5ht/YQ5PsL8fXS6PRfGhWy56wJRPltNy3zlw="
+
+  on_client_connected:
+    - if:
+        condition:
+          lambda: 'return (0 == client_info.find("Home Assistant "));'
+        then:
+          - lvgl.widget.show: lbl_hastatus
+  on_client_disconnected:
+    - if:
+        condition:
+          lambda: 'return (0 == client_info.find("Home Assistant "));'
+        then:
+          - lvgl.widget.hide: lbl_hastatus
+
+ota:
+  - platform: esphome
+    password: "6461d7f6c08ab6eef53f73e8aa89ef03"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  manual_ip:
+    static_ip: 192.168.1.12
+    gateway: 177.255.192.1
+    subnet: 255.255.248.0
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Espantalla Fallback Hotspot"
+    password: "SwKkRHOP19nh"
+
+captive_portal:
+
+web_server:
+  port: 80
+
+# ===============================================
+# =============== INTERRUPTORES =================
+# ===============================================
+switch:
+  - platform: template
+    name: Antiburn
+    id: switch_antiburn
+    icon: mdi:television-shimmer
+    optimistic: true
+    entity_category: "config"
+    turn_on_action:
+      - logger.log: "Starting Antiburn"
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+            - lvgl.widget.redraw:
+      - lvgl.pause:
+          show_snow: true
+    turn_off_action:
+      - logger.log: "Stopping Antiburn"
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+            - lvgl.widget.redraw:
+
+# ===============================================
+# =========== TIEMPO APAGAO PANTALLA ============
+# ===============================================
+number:
+  - platform: template
+    name: LVGL Screen timeout
+    optimistic: true
+    id: display_timeout
+    unit_of_measurement: "s"
+    initial_value: 45
+    restore_value: true
+    min_value: 10
+    max_value: 180
+    step: 5
+    mode: box
+# ===============================================
+# ============= SENSORES DE TEXTO ===============
+# ===============================================
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Pantalla ESP32"
+
+# ===============================================
+# =============== SENSOR BINARIO ================
+# ===============================================
+binary_sensor:
+  # ===============================================
+  # ======== LAMPARA PRINCESAS SWITCH =============
+  # ===============================================
+  - platform: homeassistant
+    id: lampara_estado
+    entity_id: light.lampara_pricesas
+    on_state:
+      then:
+        - if:
+            condition:
+              lambda: return id(lampara_estado).state;
+            then:
+              - lvgl.widget.update:
+                  id: lampara_princesas_boton
+                  text_color: 0x00FF00
+            else:
+              - lvgl.widget.update:
+                  id: lampara_princesas_boton
+                  text_color: 0xFF0000
+        # - lvgl.widget.update:
+        #     id: light_princesas_btn
+        #     state:
+        #       checked: !lambda return x;
+  # ===============================================
+  # ========== VENTILADOR PRINCESAS 1 =============
+  # ===============================================
+  - platform: homeassistant
+    id: fan_velocidad_1
+    entity_id: fan.ventilador_02_l3
+    publish_initial_state: true
+    on_state:
+      then:
+        - if:
+            condition:
+              lambda: return id(fan_velocidad_1).state;
+            then:
+              - lvgl.widget.update:
+                  id: fan_1
+                  text_color: 0x00FF00
+            else:
+              - lvgl.widget.update:
+                  id: fan_1
+                  text_color: 0xFF0000
+
+  # ===============================================
+  # ========== VENTILADOR PRINCESAS 2 =============
+  # ===============================================
+  - platform: homeassistant
+    id: fan_velocidad_2
+    entity_id: fan.ventilador_02_l2
+    publish_initial_state: true
+    on_state:
+      then:
+        - if:
+            condition:
+              lambda: return id(fan_velocidad_2).state;
+            then:
+              - lvgl.widget.update:
+                  id: fan_2
+                  text_color: 0x00FF00
+            else:
+              - lvgl.widget.update:
+                  id: fan_2
+                  text_color: 0xFF0000
+
+  # ===============================================
+  # ========== VENTILADOR PRINCESAS 3 =============
+  # ===============================================
+  - platform: homeassistant
+    id: fan_velocidad_3
+    entity_id: fan.ventilador_02_l1
+    publish_initial_state: true
+    on_state:
+      then:
+        - if:
+            condition:
+              lambda: return id(fan_velocidad_3).state;
+            then:
+              - lvgl.widget.update:
+                  id: fan_3
+                  text_color: 0x00FF00
+            else:
+              - lvgl.widget.update:
+                  id: fan_3
+                  text_color: 0xFF0000
+
+  # ===============================================
+  # ========== VENTILADOR PRINCESAS 4 =============
+  # ===============================================
+  - platform: homeassistant
+    id: fan_velocidad_4
+    entity_id: fan.ventilador_02_l4
+    publish_initial_state: true
+    on_state:
+      then:
+        - if:
+            condition:
+              lambda: return id(fan_velocidad_4).state;
+            then:
+              - lvgl.widget.update:
+                  id: fan_4
+                  text_color: 0x00FF00
+            else:
+              - lvgl.widget.update:
+                  id: fan_4
+                  text_color: 0xFF0000
+  # ===============================================
+  # ================== LUZ PASILLO ================
+  # ===============================================
+  - platform: homeassistant
+    id: pasillo_luz
+    entity_id: light.luz_pasillo
+    publish_initial_state: true
+    on_state:
+      then:
+        - if:
+            condition:
+              lambda: return id(pasillo_luz).state;
+            then:
+              - lvgl.widget.update:
+                  id: luz_pasillo_boton
+                  text_color: 0x00FF00
+            else:
+              - lvgl.widget.update:
+                  id: luz_pasillo_boton
+                  text_color: 0xFF0000
+
+  # ===============================================
+  # ================= LUZ BAÑO ====== =============
+  # ===============================================
+  - platform: homeassistant
+    id: bano_luz
+    entity_id: light.luces_tocador_l2
+    publish_initial_state: true
+    on_state:
+      then:
+        - if:
+            condition:
+              lambda: return id(bano_luz).state;
+            then:
+              - lvgl.widget.update:
+                  id: luz_bano_boton
+                  text_color: 0x00FF00
+            else:
+              - lvgl.widget.update:
+                  id: luz_bano_boton
+                  text_color: 0xFF0000
+
+  # ===============================================
+  # =================== LUZ JUEGOS =================
+  # ===============================================
+  - platform: homeassistant
+    id: juegos_luz
+    entity_id: light.luz_juegos
+    publish_initial_state: true
+    on_state:
+      then:
+        - if:
+            condition:
+              lambda: return id(juegos_luz).state;
+            then:
+              - lvgl.widget.update:
+                  id: luz_juegos_boton
+                  text_color: 0x00FF00
+            else:
+              - lvgl.widget.update:
+                  id: luz_juegos_boton
+                  text_color: 0xFF0000
+# ===============================================
+# =================== RELOJ =====================
+# ===============================================
+time:
+  - platform: homeassistant
+    id: time_comp
+    on_time_sync:
+      - script.execute: time_update
+    on_time:
+      - minutes: "*"
+        seconds: 0
+        then:
+          - script.execute: time_update
+      - hours: 5
+        minutes: 0
+        seconds: 0
+        then:
+          - light.turn_on:
+              id: back_light
+              brightness: 100%
+          - light.turn_off: back_light
+      - hours: 18
+        minutes: 0
+        seconds: 0
+        then:
+          - light.turn_on:
+              id: back_light
+              brightness: 40%
+          - light.turn_off: back_light
+
+script:
+  - id: time_update
+    then:
+      # Actualiza la fecha (Día y Mes)
+      - lvgl.label.update:
+          id: date_label
+          text: !lambda |-
+            static const char * const mon_names[] = {"ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"};
+            static char date_buf[16];
+            auto now = id(time_comp).now();
+            snprintf(date_buf, sizeof(date_buf), "%s %2d", mon_names[now.month-1], now.day_of_month);
+            return date_buf;
+
+      # Actualiza el día de la semana
+      - lvgl.label.update:
+          id: day_label
+          text: !lambda |-
+            static const char * const day_names[] = {"DOMINGO", "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"};
+            return day_names[id(time_comp).now().day_of_week -1];
+
+      # Actualiza la hora digital en formato 12 horas con AM/PM
+      - lvgl.label.update:
+          id: display_time
+          text: !lambda |-
+            static char time_buf[16];
+            auto now = id(time_comp).now();
+            int hour_12 = now.hour % 12;
+            if (hour_12 == 0) hour_12 = 12; // Si es medianoche o mediodía, mostrar 12
+            const char* period = (now.hour >= 12) ? "PM" : "AM";
+            snprintf(time_buf, sizeof(time_buf), "%d:%02d %s", hour_12, now.minute, period);
+            return time_buf;
+
+      # Actualiza la hora digital en formato 12 horas con AM/PM
+      - lvgl.label.update:
+          id: display_time_2
+          text: !lambda |-
+            static char time_buf[16];
+            auto now = id(time_comp).now();
+            int hour_12 = now.hour % 12;
+            if (hour_12 == 0) hour_12 = 12; // Si es medianoche o mediodía, mostrar 12
+            const char* period = (now.hour >= 12) ? "PM" : "AM";
+            snprintf(time_buf, sizeof(time_buf), "%d:%02d %s", hour_12, now.minute, period);
+            return time_buf;
+
+# ===============================================
+# ==================== SENSOR ===================
+# ===============================================
+sensor:
+  #================================================
+  #=================TEMPERATURA====================
+  #================================================
+  - platform: homeassistant
+    entity_id: sensor.temperatura_01_temperature
+    id: temperatura_01
+    on_value:
+      # - lvgl.indicator.update:
+      #     id: temperature_needle
+      #     value: !lambda return x * 10;
+      - lvgl.label.update:
+          id: temperature_text
+          text:
+            format: "%.1f°C"
+            args: ["x"]
+
+  # ===============================================
+  # ======== LAMPARA PRINCESAS BRILLO =============
+  # ===============================================
+  - platform: homeassistant
+    id: lampara_brillo
+    entity_id: light.lampara_pricesas
+    attribute: brightness
+    on_value:
+      - lvgl.slider.update:
+          id: dimmer_slider
+          value: !lambda return x;
+
+# ===============================================
+# ============== LUCES PANTALLA ================
+# ===============================================
+light:
+  - platform: monochromatic
+    output: internal_light_output
+    name: Luz de Fondo
+    id: back_light
+    restore_mode: ALWAYS_ON
+
+  - platform: binary
+    output: internal_relay_1
+    name: luz Princesas
+    id: internal_light
+    on_turn_on:
+      then:
+        - lvgl.widget.update:
+            id: lv_button_1_icon
+            text_color: 0x00FF00
+        - lvgl.widget.update:
+            id: lv_button_2_icon
+            text_color: 0x00FF00
+        # - lvgl.widget.update:
+        #     id: lv_button_1
+        #     state:
+        #       checked: true
+    on_turn_off:
+      then:
+        - lvgl.widget.update:
+            id: lv_button_1_icon
+            text_color: 0xFF0000
+        - lvgl.widget.update:
+            id: lv_button_2_icon
+            text_color: 0xFF0000
+        # - lvgl.widget.update:
+        #     id: lv_button_1
+        #     state:
+        #       checked: false
+
+output:
+  - platform: ledc
+    pin: GPIO38
+    id: internal_light_output
+    frequency: 100Hz
+
+  - id: internal_relay_1
+    platform: gpio
+    pin: 40
+
+# ===============================================
+# =========== Touchscreen gt911 i2c =============
+# ===============================================
+i2c:
+  - id: bus_a
+    sda: GPIO19
+    scl: GPIO45
+    #frequency: 100kHz
+
+touchscreen:
+  platform: gt911
+  transform:
+    mirror_x: false
+    mirror_y: false
+  id: my_touchscreen
+  display: my_display
+
+  on_touch:
+    - logger.log:
+        format: Touch at (%d, %d)
+        args: [touch.x, touch.y]
+    - lambda: |-
+        ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
+            touch.x,
+            touch.y,
+            touch.x_raw,
+            touch.y_raw
+            );
+
+  on_release:
+    - if:
+        condition: lvgl.is_paused
+        then:
+          - logger.log: "LVGL resuming"
+          - lvgl.resume:
+          - lvgl.widget.redraw:
+          - light.turn_on: back_light
+          - switch.turn_off: switch_antiburn
+
+# ===============================================
+# ============== TAMAÑO DE LETRA ================
+# ===============================================
+font:
+  - file: "gfonts://Roboto"
+
+    id: roboto24
+    size: 24
+    bpp: 4
+    extras:
+      - file: "fonts/materialdesignicons-webfont.ttf" # http://materialdesignicons.com/cdn/7.4.47/
+        glyphs:
+          [
+            "\U000F004B",
+            "\U000F006E",
+            "\U000F012C",
+            "\U000F179B",
+            "\U000F0748",
+            "\U000F1A1B",
+            "\U000F02DC",
+            "\U000F0A02",
+            "\U000F035F",
+            "\U000F0156",
+            "\U000F0C5F",
+            "\U000f0084",
+            "\U000f0091",
+            "\U000F058E",
+            "\U000F10C3",
+          ]
+
+  - file: "gfonts://Roboto"
+    id: roboto80
+    size: 80
+    bpp: 4
+
+  - file: "fonts/materialdesignicons-webfont.ttf" # http://materialdesignicons.com/cdn/7.4.47/
+    id: light32
+    size: 32
+    bpp: 4
+    glyphs: [
+        "\U000F0335", # mdi-lightbulb
+        "\U000F08DD", # mdi-floor-lamp
+        "\U000F12BA", # mdi-string-lights
+        "\U000F0150", # mdi-clock
+        "\U000F1797", # mdi-ceiling_fan
+        "\U000F179B", # mdi-light_recessed
+        "\U000F1A2B", # mdi-blinds_horizontal
+        "\U000F1A2C", # mdi-blinds_horizontal_closed
+        "\U000F1847", # mdi-curtains_closed
+        "\U000F1846", # mdi-curtains
+        "\U000F091C", # mdi-wallsconce
+        "\U000F02E3", # mdi-bed
+        "\U000F08A0", # mdi-bed_empty
+        "\U000F10C2", # mdi-thermometer_high
+        "\U000F058E", # mdi-humidity
+        "\U000F05A9",
+        "\U000F0210",
+      ]
+  - file: "fonts/materialdesignicons-webfont.ttf" # http://materialdesignicons.com/cdn/7.4.47/
+    id: light48
+    size: 48
+    bpp: 4
+    glyphs: [
+        "\U000F0335", # mdi-lightbulb
+        "\U000F08DD", # mdi-floor-lamp
+        "\U000F12BA", # mdi-string-lights
+        "\U000F0150", # mdi-clock
+        "\U000F1797", # mdi-ceiling_fan
+        "\U000F179B", # mdi-light_recessed
+        "\U000F1A2B", # mdi-blinds_horizontal
+        "\U000F1A2C", # mdi-blinds_horizontal_closed
+        "\U000F1847", # mdi-curtains_closed
+        "\U000F1846", # mdi-curtains
+        "\U000F091C", # mdi-wallsconce
+        "\U000F02E3", # mdi-bed
+        "\U000F08A0", # mdi-bed_empty
+        "\U000F10C2", # mdi-thermometer_high
+        "\U000F058E", # mdi-humidity
+        "\U000F05A9",
+        "\U000F0210",
+        "\U000F0425",
+        "\U000F09AB",
+        "\U000F1054",
+      ]
+
+  - file: "fonts/materialdesignicons-webfont.ttf" # http://materialdesignicons.com/cdn/7.4.47/
+    id: light100
+    size: 100
+    bpp: 4
+    glyphs: [
+        "\U000F0335", # mdi-lightbulb
+        "\U000F08DD", # mdi-floor-lamp
+        "\U000F12BA", # mdi-string-lights
+        "\U000F0150", # mdi-clock
+        "\U000F1797", # mdi-ceiling_fan
+        "\U000F179B", # mdi-light_recessed
+        "\U000F1A2B", # mdi-blinds_horizontal
+        "\U000F1A2C", # mdi-blinds_horizontal_closed
+        "\U000F1847", # mdi-curtains_closed
+        "\U000F1846", # mdi-curtains
+        "\U000F091C", # mdi-wallsconce
+        "\U000F02E3", # mdi-bed
+        "\U000F08A0", # mdi-bed_empty
+        "\U000F10C2", # mdi-thermometer_high
+        "\U000F058E", # mdi-humidity
+        "\U000F05A9",
+        "\U000F0210",
+      ]
+# # ===============================================
+# # ======== Display st7701s spi ==================
+# # ===============================================
+spi:
+  - id: lcd_spi
+    clk_pin: GPIO48
+    mosi_pin: GPIO47
+
+display:
+  - platform: st7701s
+    id: my_display
+    update_interval: never
+    auto_clear_enabled: False
+    spi_mode: MODE3
+    data_rate: 2MHz
+    color_order: RGB
+    invert_colors: False
+    dimensions:
+      width: 480
+      height: 480
+    cs_pin: 39
+    de_pin: 18
+    hsync_pin: 16
+    vsync_pin: 17
+    pclk_pin: 21
+    pclk_frequency: 12MHz
+    pclk_inverted: False
+    hsync_pulse_width: 8
+    hsync_front_porch: 10
+    hsync_back_porch: 20
+    vsync_pulse_width: 8
+    vsync_front_porch: 10
+    vsync_back_porch: 10
+    init_sequence:
+      - 1
+      # Custom sequences are an array, first byte is command, the rest are data.
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x10] # CMD2_BKSEL_BK0
+      - [0xCD, 0x00] # disable MDT flag
+    data_pins:
+      red:
+        - 11 #r1
+        - 12 #r2
+        - 13 #r3
+        - 14 #r4
+        - 0 #r5
+      green:
+        - 8 #g0
+        - 20 #g1
+        - 3 #g2
+        - 46 #g3
+        - 9 #g4
+        - 10 #g5
+      blue:
+        - 4 #b1
+        - 5 #b2
+        - 6 #b3
+        - 7 #b4
+        - 15 #b5
+
+# # ===============================================
+# # =============== LVGL ==========================
+# # ===============================================
+
+lvgl:
+  displays:
+    - my_display
+
+  on_idle:
+    timeout: !lambda "return (id(display_timeout).state * 1000);"
+    then:
+      - logger.log: "LVGL is idle"
+      - light.turn_off: back_light
+      - switch.turn_on: switch_antiburn
+      - lvgl.pause:
+
+  # # ===============================================
+  # # =============== TEMA ==========================
+  # # ===============================================
+  theme:
+    label:
+      text_font: roboto24
+
+    # button:
+    #   bg_color: 0x8A2BE2
+    #   bg_grad_color: 0xFF69B4
+    #   bg_grad_dir: VER
+    #   bg_opa: COVER
+    #   border_color: 0x0077b3
+    #   border_width: 1
+    #   text_color: 0xFFFFFF
+    #   pressed: # set some button colors to be different in pressed state
+    #     bg_color: 0xFF69B4
+    #     # bg_grad_color: 0x8A2BE2
+    #   checked: # set some button colors to be different in checked state
+    #     bg_color: 0x8A2BE2
+    #     bg_grad_color: 0x8A2BE2
+    #     text_color: 0xfff300
+
+  style_definitions:
+    - id: style_line
+      line_color: 0x0000FF
+      line_width: 8
+      line_rounded: true
+    - id: date_style
+      text_font: roboto24
+      align: center
+      text_color: 0x333333
+      bg_opa: cover
+      radius: 4
+      pad_all: 2
+
+    - id: header_footer
+      bg_color: 0x8A2BE2
+      bg_grad_color: 0xE6E6FA
+      bg_grad_dir: VER
+      bg_opa: COVER
+      border_opa: TRANSP
+      radius: 0
+      pad_all: 0
+      pad_row: 0
+      pad_column: 0
+      border_color: 0x0077b3
+      text_color: 0xFFFFFF
+      width: 100%
+      height: 40
+
+  # # ===============================================
+  # # ========== ICONO CONECCION ====================
+  # # ===============================================
+  top_layer:
+    widgets:
+      - label:
+          text_font: light32
+          text: "\U000F05A9"
+          id: lbl_hastatus
+          hidden: true
+          align: top_right
+          x: -4
+          y: 7
+          text_align: right
+          text_color: 0xFFFFFF
+      # # ===============================================
+      # # ===================== HORA ====================
+      # # ===============================================
+      - label:
+          text_font: roboto24
+          text: "00:00 am"
+          id: display_time
+          align: top_right
+          x: -40
+          y: 8
+          text_align: right
+          text_color: 0xFFFFFF
+
+      # # ===============================================
+      # # =========== PIE DE PAGINA =====================
+      # # ===============================================
+      - buttonmatrix:
+          align: bottom_mid
+          styles: header_footer
+          pad_all: 0
+          outline_width: 0
+          id: top_layer
+          items:
+            styles: header_footer
+          rows:
+            - buttons:
+                - id: page_prev
+                  text: "\uF053"
+                  on_press:
+                    then:
+                      lvgl.page.previous:
+                - id: page_home
+                  text: "\uF015"
+                  on_press:
+                    then:
+                      lvgl.page.show: page_luz
+                - id: page_next
+                  text: "\uF054"
+                  on_press:
+                    then:
+                      lvgl.page.next:
+
+  # # ===============================================
+  # # ============== PAGINAS ========================
+  # # ===============================================
+  page_wrap: true
+  pages:
+    #  ===============================================
+    # # =========== LUZ PRINCESAS ==============
+    # # ===============================================
+    - id: page_luz
+      skip: true
+      width: 100%
+      bg_color: 0x000000 #0xfff300
+      bg_opa: COVER
+      pad_all: 5
+      widgets:
+        - button:
+            width: 470
+            height: 424
+            # checkable: true
+            id: lv_button_1
+            widgets:
+              - label:
+                  id: lv_button_1_icon
+                  align: CENTER
+                  text_font: light100
+                  text: $light_recessed
+              - label:
+                  align: "BOTTOM_LEFT"
+                  text: "Luz Princesas"
+                  long_mode: dot
+            on_click:
+              light.toggle: internal_light
+
+        #  ===============================================
+        # # =========== PAGINA VENTILADORES ==============
+        # # ==============================================
+    - id: page_ventilador
+      bg_color: 0xFFB6C1
+      bg_opa: COVER
+      widgets:
+        - obj:
+            align: TOP_MID
+            styles: header_footer
+            widgets:
+              - label:
+                  text: "VENTILADOR PRINCESAS"
+                  align: TOP_LEFT
+                  text_align: left
+                  text_color: 0xFFFFFF
+        #================= FAN 1 ====================
+        - button:
+            x: 20
+            y: 60
+            width: 200
+            height: 160
+            # checkable: true
+            id: btn_fan_1
+            widgets:
+              - label:
+                  id: fan_1
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0210"
+              - label:
+                  align: "BOTTOM_LEFT"
+                  text: "Velocidad 1"
+                  long_mode: dot
+            on_click:
+              - homeassistant.action:
+                  action: fan.toggle
+                  data:
+                    entity_id: fan.ventilador_02_l3
+
+        #================= FAN 2 ====================
+        - button:
+            x: 260
+            y: 60
+            width: 200
+            height: 160
+            # checkable: true
+            id: btn_fan_2
+            widgets:
+              - label:
+                  id: fan_2
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0210"
+              - label:
+                  align: "BOTTOM_LEFT"
+                  text: "Velocidad 2"
+                  long_mode: dot
+            on_short_click:
+              - homeassistant.action:
+                  action: fan.toggle
+                  data:
+                    entity_id: fan.ventilador_02_l2
+
+        #================= FAN 3 ====================
+        - button:
+            x: 20
+            y: 260
+            width: 200
+            height: 160
+            # checkable: true
+            id: btn_fan_3
+            widgets:
+              - label:
+                  id: fan_3
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0210"
+              - label:
+                  align: "BOTTOM_LEFT"
+                  text: "Velocidad 3"
+                  long_mode: dot
+            on_short_click:
+              - homeassistant.action:
+                  action: fan.toggle
+                  data:
+                    entity_id: fan.ventilador_02_l1
+
+        #================= FAN 4 ====================
+        - button:
+            x: 260
+            y: 260
+            width: 200
+            height: 160
+            # checkable: true
+            id: btn_fan_4
+            widgets:
+              - label:
+                  id: fan_4
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0210"
+              - label:
+                  align: "BOTTOM_LEFT"
+                  text: "Velocidad 4"
+                  long_mode: dot
+            on_short_click:
+              - homeassistant.action:
+                  action: fan.toggle
+                  data:
+                    entity_id: fan.ventilador_02_l4
+
+    # # ===============================================
+    # # =============== PAGINA LUCES ==================
+    # # ===============================================
+    - id: page_luces
+      bg_color: 0xFF69B4
+      bg_opa: COVER
+      widgets:
+        - obj:
+            align: TOP_MID
+            styles: header_footer
+            widgets:
+              - label:
+                  text: "LUCES"
+                  align: TOP_LEFT
+                  text_align: left
+                  text_color: 0xFFFFFF
+
+        #================= lUZ PRINCESAS ====================
+        - button:
+            x: 20
+            y: 60
+            width: 200
+            height: 160
+            # checkable: true
+            id: lv_button_2
+            widgets:
+              - label:
+                  id: lv_button_2_icon
+                  align: CENTER
+                  text_font: light48
+                  text: $light_recessed
+              - label:
+                  align: "BOTTOM_LEFT"
+                  text: "Luz Princesas"
+                  long_mode: dot
+            on_click:
+              light.toggle: internal_light
+
+        #================= LUZ PASILLO ====================
+        - button:
+            x: 260
+            y: 60
+            width: 200
+            height: 160
+            # checkable: true
+            id: pasillo_btn_1
+            widgets:
+              - label:
+                  id: luz_pasillo_boton
+                  align: CENTER
+                  text_font: light48
+                  text: $light_recessed
+              - label:
+                  align: "BOTTOM_LEFT"
+                  text: "Luz Pasillo"
+                  long_mode: dot
+            on_click:
+              - homeassistant.action:
+                  action: light.toggle
+                  data:
+                    entity_id: light.luz_pasillo
+
+        #================= LUZ BAÑO ====================
+        - button:
+            x: 20
+            y: 260
+            width: 200
+            height: 160
+            # checkable: true
+            id: bano_btn_2
+            widgets:
+              - label:
+                  id: luz_bano_boton
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F09AB"
+              - label:
+                  align: "BOTTOM_LEFT"
+                  text: "luz Bano"
+                  long_mode: dot
+            on_click:
+              - homeassistant.action:
+                  action: light.toggle
+                  data:
+                    entity_id: light.luces_tocador_l2
+
+        #================= LUZ JUEGOS ====================
+        - button:
+            x: 260
+            y: 260
+            width: 200
+            height: 160
+            # checkable: true
+            id: papis_btn_3
+            widgets:
+              - label:
+                  id: luz_juegos_boton
+                  align: CENTER
+                  text_font: light48
+                  text: $light_recessed
+              - label:
+                  align: "BOTTOM_LEFT"
+                  text: "Luz Juegos"
+                  long_mode: dot
+            on_click:
+              - homeassistant.action:
+                  action: light.toggle
+                  data:
+                    entity_id: light.luz_juegos
+
+        #  ===============================================
+        # # =========== PAGINA LAMPARA ==============
+        # # ==============================================
+    - id: page_lampara
+      bg_color: 0xA8E6A1
+      bg_opa: COVER
+      widgets:
+        - obj:
+            align: TOP_MID
+            styles: header_footer
+            widgets:
+              - label:
+                  text: "LAMPARA PRINCESAS"
+                  align: TOP_LEFT
+                  text_align: left
+                  text_color: 0xFFFFFF
+        - slider:
+            id: dimmer_slider
+            x: 105
+            y: 80
+            width: 50
+            height: 300
+            pad_all: 8
+            min_value: 3
+            max_value: 255
+            bg_color: 0xFF0000
+            arc_color: 0xA2D9FF
+            on_release:
+              - homeassistant.action:
+                  action: light.turn_on
+                  data:
+                    entity_id: light.lampara_pricesas
+                    brightness: !lambda return int(x);
+        - button:
+            id: light_princesas_btn
+            x: 305
+            y: 190
+            width: 120
+            height: 100
+            # checkable: true
+            widgets:
+              - label:
+                  id: lampara_princesas_boton
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F1054"
+            on_click:
+              - homeassistant.action:
+                  action: light.toggle
+                  data:
+                    entity_id: light.lampara_pricesas
+
+        #  ===============================================
+        # # =========== PAGINA COLORES ==============
+        # # ==============================================
+    - id: page_lampara_color
+      bg_color: 0x000000
+      bg_opa: COVER
+      widgets:
+        - obj:
+            align: TOP_MID
+            styles: header_footer
+            widgets:
+              - label:
+                  text: "COLORES LAMPARA"
+                  align: TOP_LEFT
+                  text_align: left
+                  text_color: 0xFFFFFF
+
+        #####################  MENTA VERDE #####################
+        - button:
+            x: 30
+            y: 50
+            width: 120
+            height: 120
+            bg_color: "0x98FF98"
+            radius: 60
+            on_click:
+              - homeassistant.service:
+                  service: input_text.set_value
+                  data:
+                    entity_id: input_text.color_seleccionado
+                    value: "152, 255, 152"
+
+        ##################### LAVANDA #####################
+        - button:
+            x: 180
+            y: 50
+            width: 120
+            height: 120
+            bg_color: "0xE6E6FA"
+            radius: 60
+            on_click:
+              - homeassistant.service:
+                  service: input_text.set_value
+                  data:
+                    entity_id: input_text.color_seleccionado
+                    value: "230, 230, 250"
+
+        ##################### AMARILLO #####################
+        - button:
+            x: 330
+            y: 50
+            width: 120
+            height: 120
+            bg_color: "0xFFEF80"
+            radius: 60
+            on_click:
+              - homeassistant.service:
+                  service: input_text.set_value
+                  data:
+                    entity_id: input_text.color_seleccionado
+                    value: "255, 239, 128"
+
+        ##################### ROSA #####################
+        - button:
+            x: 30
+            y: 180
+            width: 120
+            height: 120
+            bg_color: "0xFF69B4"
+            radius: 60
+            on_click:
+              - homeassistant.service:
+                  service: input_text.set_value
+                  data:
+                    entity_id: input_text.color_seleccionado
+                    value: "255, 105, 180"
+
+        ##################### FUCSIA #####################
+        - button:
+            x: 180
+            y: 180
+            width: 120
+            height: 120
+            bg_color: "0xFF1493"
+            radius: 60
+            on_click:
+              - homeassistant.service:
+                  service: input_text.set_value
+                  data:
+                    entity_id: input_text.color_seleccionado
+                    value: "255, 20, 147"
+
+        ##################### TURQUESA #####################
+        - button:
+            x: 330
+            y: 180
+            width: 120
+            height: 120
+            bg_color: "0x40E0D0"
+            radius: 60
+            on_click:
+              - homeassistant.service:
+                  service: input_text.set_value
+                  data:
+                    entity_id: input_text.color_seleccionado
+                    value: "64, 224, 208"
+
+        ##################### LILA #####################
+        - button:
+            x: 30
+            y: 310
+            width: 120
+            height: 120
+            bg_color: "0xBA55D3"
+            radius: 70
+            on_click:
+              - homeassistant.service:
+                  service: input_text.set_value
+                  data:
+                    entity_id: input_text.color_seleccionado
+                    value: "186, 85, 211"
+
+        ##################### CELESTE #####################
+        - button:
+            x: 180
+            y: 310
+            width: 120
+            height: 120
+            bg_color: "0xADD8E6"
+            radius: 70
+            on_click:
+              - homeassistant.service:
+                  service: input_text.set_value
+                  data:
+                    entity_id: input_text.color_seleccionado
+                    value: "173, 216, 230"
+
+        ##################### CORAL #####################
+        - button:
+            x: 330
+            y: 310
+            width: 120
+            height: 120
+            bg_color: "0xFF7F50"
+            radius: 70
+            on_click:
+              - homeassistant.service:
+                  service: input_text.set_value
+                  data:
+                    entity_id: input_text.color_seleccionado
+                    value: "255, 127, 80"
+
+        #  ===============================================
+        # # =============== PAGINA RELOJ =================
+        # # ==============================================
+    - id: page_reloj
+      bg_color: 0xAFEEEE
+      bg_opa: COVER
+      widgets:
+        - obj:
+            align: TOP_MID
+            styles: header_footer
+            widgets:
+              - label:
+                  text: "RELOJ"
+                  align: TOP_LEFT
+                  text_align: left
+                  text_color: 0xFFFFFF
+
+        - label:
+            id: display_time_2
+            align: LV_ALIGN_CENTER
+            y: -80
+            text_font: roboto80
+            text: "00:00 am"
+            text_color: 0x000000
+
+        - label:
+            id: day_label
+            align: LV_ALIGN_CENTER
+            y: 0
+            text_font: roboto80
+            text: "DOMINGO"
+            text_color: 0x000000
+
+        - label:
+            id: date_label
+            align: LV_ALIGN_CENTER
+            y: 80
+            text_font: roboto80
+            text: "ENERO 01"
+            text_color: 0x000000
+
+        #  ===============================================
+        # # =========== PAGINA TEMPERATURA ==============
+        # # ==============================================
+
+    - id: page_temperatura
+      bg_color: 0xAFEEEE
+      bg_opa: COVER
+      widgets:
+        - obj:
+            align: TOP_MID
+            styles: header_footer
+            widgets:
+              - label:
+                  text: "TEMPERATURA CUARTO"
+                  align: TOP_LEFT
+                  text_align: left
+                  text_color: 0xFFFFFF
+
+        - label:
+            id: temperature_text
+            text: "Temperatura: --°C"
+            align: CENTER
+            # y: 100
+            text_font: roboto80
+            text_color: 0x000000
+
+        - label:
+            text: "TEMPERATURA DEL CUARTO"
+            align: CENTER
+            y: 100
+
+        #  ===============================================
+        # # ======= PAGINA HORARIO CLASES EMMA ===========
+        # # ==============================================
+    - id: page_horario_emma
+      bg_color: 0x00ffff
+      bg_opa: COVER
+      widgets:
+        - obj:
+            align: TOP_MID
+            styles: header_footer
+            widgets:
+              - label:
+                  text: "HORARIO CLASES EMMA"
+                  align: TOP_LEFT
+                  text_align: left
+                  text_color: 0xFFFFFF
