@@ -130,6 +130,15 @@ number:
     max_value: 180
     step: 5
     mode: box
+
+# ===============================================
+# =========== TIEMPO CAMBIO PANTALLA ============
+# ===============================================
+globals:
+  - id: inactivity_timer
+    type: int
+    restore_value: no
+    initial_value: "0"
 # ===============================================
 # ============= SENSORES DE TEXTO ===============
 # ===============================================
@@ -494,6 +503,11 @@ touchscreen:
             touch.y_raw
             );
 
+    # ===============================================
+    # ============== REINICIA TEMPORIZADOR ================
+    # ===============================================
+    - lambda: id(inactivity_timer) = 0;
+
   on_release:
     - if:
         condition: lvgl.is_paused
@@ -672,9 +686,22 @@ display:
         - 15 #b5
 
 # # ===============================================
+# # ======== VUELVE A LA PAGINA INICICIAL =========
+# # ===============================================
+interval:
+  - interval: 1s
+    then:
+      - lambda: id(inactivity_timer) += 1;
+      - if:
+          condition:
+            lambda: return id(inactivity_timer) >= 40;
+          then:
+            - lambda: lv_scr_load(id(page_luz).obj);
+            - lambda: id(inactivity_timer) = 0;
+
+# # ===============================================
 # # =============== LVGL ==========================
 # # ===============================================
-
 lvgl:
   displays:
     - my_display
