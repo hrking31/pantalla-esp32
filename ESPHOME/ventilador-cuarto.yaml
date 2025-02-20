@@ -1,0 +1,63 @@
+esphome:
+  name: ventilador-juegos
+
+esp8266:
+  board: esp01_1m
+  
+web_server:
+  port: 80
+
+wifi:
+  ssid: "EMMANNETTE"
+  password: "22736950"
+ 
+  
+  manual_ip:
+    static_ip: 192.168.1.70
+    gateway: 177.255.192.1
+    subnet: 255.255.248.0 
+
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Ventilador-Juegos"
+    password: "TF8SaDHCM2MM"
+
+captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+  platform: esphome
+  password: "hr72272605"
+
+    
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO03
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    name: "Ventilador Juegos" 
+    on_press:
+      - switch.toggle: relay
+      
+  - platform: status
+    name: "Ventilador Juegos"
+    
+switch:
+  - platform: gpio
+    name: "Ventilador Juegos" 
+    pin: GPIO12
+    id: relay
+    
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP ESP VentiladorJuegos"

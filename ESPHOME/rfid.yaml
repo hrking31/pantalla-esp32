@@ -1,0 +1,76 @@
+esphome:
+  name: rfid
+
+esp8266:
+ # board: esp01_1m
+  board: nodemcuv2
+spi:
+  clk_pin: 14
+  miso_pin: 12
+  mosi_pin: 13
+
+rc522_spi:
+  cs_pin: 15
+  update_interval: 1s
+  
+  on_tag:
+    then:
+      - homeassistant.tag_scanned: !lambda 'return x;'
+    
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+  password: "ad65aecf58c735193a2257a3f75a1861"
+
+wifi:
+  ssid: "EMMA"
+  password: "22736950"
+  
+  manual_ip:
+    static_ip: 192.168.1.6
+    gateway: 192.168.1.254
+    subnet: 255.255.255.0
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Rfid Fallback Hotspot"
+    password: "GuHjGzxIjbSM"
+
+captive_portal:
+
+binary_sensor:
+  - platform: rc522
+    uid: BA-83-8A-80
+    name: "LLavero"
+    
+    on_state:
+      then:
+        - light.toggle: light_1
+        
+  - platform: rc522
+    uid: 7A-9D-61-1A
+    name: "CaRey"
+    
+    on_state:
+      then:
+        - light.toggle: light_1        
+        
+        
+        
+output:
+  - platform: gpio
+    pin: GPIO 5
+    id: relay_1
+    
+
+light:
+  - platform: binary
+    name: "RFID TAG"
+    id: light_1
+    output: relay_1
+    
