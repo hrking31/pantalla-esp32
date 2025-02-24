@@ -132,13 +132,17 @@ number:
     mode: box
 
 # ===============================================
-# =========== TIEMPO CAMBIO PANTALLA ============
+# ============= VARIABLES GLOBALES ==============
 # ===============================================
 globals:
+  # ===============================================
+  # =========== TIEMPO CAMBIO PANTALLA ============
+  # ===============================================
   - id: inactivity_timer
     type: int
     restore_value: no
     initial_value: "0"
+
 # ===============================================
 # ============= SENSORES DE TEXTO ===============
 # ===============================================
@@ -1369,3 +1373,229 @@ lvgl:
                   align: TOP_LEFT
                   text_align: left
                   text_color: 0xFFFFFF
+
+        ##################### LUNES #####################
+        - button:
+            x: 30
+            y: 50
+            width: 120
+            height: 140
+            widgets:
+              - label:
+                  align: CENTER
+                  text: "LUNES"
+            on_click:
+              - lambda: |-
+                  lv_scr_load(id(page_lunes).obj);
+
+        ##################### MARTES #####################
+        - button:
+            x: 330
+            y: 50
+            width: 120
+            height: 140
+            widgets:
+              - label:
+                  align: CENTER
+                  text: "MARTES"
+            on_click:
+              - lambda: |-
+                  lv_scr_load(id(page_martes).obj);
+
+        ##################### MIERCOLES #####################
+        - button:
+            x: 180
+            y: 180
+            width: 120
+            height: 140
+            widgets:
+              - label:
+                  align: CENTER
+                  text: "MIERCOLES"
+            on_click:
+              - lambda: |-
+                  lv_scr_load(id(page_miercoles).obj);
+
+        ##################### JUEVES #####################
+        - button:
+            x: 30
+            y: 310
+            width: 120
+            height: 140
+            widgets:
+              - label:
+                  align: CENTER
+                  text: "JUEVES"
+            on_click:
+              - lambda: |-
+                  lv_scr_load(id(page_jueves).obj);
+
+        ##################### VIERNES #####################
+        - button:
+            x: 330
+            y: 310
+            width: 120
+            height: 140
+            widgets:
+              - label:
+                  align: CENTER
+                  text: "VIERNES"
+            on_click:
+              - lambda: |-
+                  lv_scr_load(id(page_viernes).obj);
+
+        #  ===============================================
+        # # =============== PAGINA LUNES =================
+        # # ==============================================
+    - id: page_lunes
+      bg_color: 0x000000
+      bg_opa: COVER
+      widgets:
+        - obj:
+            align: TOP_MID
+            styles: header_footer
+            widgets:
+              - label:
+                  text: "LUNES"
+                  align: TOP_LEFT
+                  text_align: left
+                  text_color: 0xFFFFFF
+        - button:
+            x: 20
+            y: 60
+            width: 200
+            height: 160
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: $light_recessed
+              - label:
+                  text: "Volver"
+            on_click:
+              - lambda: lv_scr_load(id(page_horario_emma).obj);
+
+    #  ===============================================
+    # # ============== PAGINA MARTES =================
+    # # ==============================================
+    - id: page_martes
+      bg_color: 0x000000
+      bg_opa: COVER
+      widgets:
+        - obj:
+            align: TOP_MID
+            styles: header_footer
+            widgets:
+              - label:
+                  text: "MARTES"
+                  align: TOP_LEFT
+                  text_align: left
+                  text_color: 0xFFFFFF
+        - button:
+            x: 20
+            y: 60
+            width: 200
+            height: 160
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: $light_recessed
+              - label:
+                  text: "Volver"
+            on_click:
+              - lambda: lv_scr_load(id(page_horario_emma).obj);
+
+    #  ===============================================
+    # # ============= PAGINA MIERCOLES ===============
+    # # ==============================================
+    - id: page_miercoles
+      bg_color: 0x000000
+      bg_opa: COVER
+      widgets:
+        - obj:
+            align: TOP_MID
+            styles: header_footer
+            widgets:
+              - label:
+                  text: "MIERCOLES"
+                  align: TOP_LEFT
+                  text_align: left
+                  text_color: 0xFFFFFF
+        - button:
+            x: 20
+            y: 60
+            width: 200
+            height: 160
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: $light_recessed
+              - label:
+                  text: "Volver"
+            on_click:
+              - lambda: lv_scr_load(id(page_horario_emma).obj);
+
+    #  ===============================================
+    # # ============== PAGINA JUEVES =================
+    # # ==============================================
+    - id: page_jueves
+      bg_color: 0x000000
+      bg_opa: COVER
+      widgets:
+        - obj:
+            align: TOP_MID
+            styles: header_footer
+            widgets:
+              - label:
+                  text: "JUEVES"
+                  align: TOP_LEFT
+                  text_align: left
+                  text_color: 0xFFFFFF
+        - button:
+            x: 20
+            y: 60
+            width: 200
+            height: 160
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: $light_recessed
+              - label:
+                  text: "Volver"
+            on_click:
+              - lambda: lv_scr_load(id(page_horario_emma).obj);
+
+    #  ===============================================
+    # # ============= PAGINA VIERNES =================
+    # # ==============================================
+    - id: page_viernes
+      bg_color: 0x000000
+      bg_opa: COVER
+      widgets:
+        - obj:
+            align: TOP_MID
+            styles: header_footer
+            widgets:
+              - label:
+                  text: "VIERNES"
+                  align: TOP_LEFT
+                  text_align: left
+                  text_color: 0xFFFFFF
+        - button:
+            x: 20
+            y: 60
+            width: 200
+            height: 160
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: $light_recessed
+              - label:
+                  text: "Volver"
+            on_click:
+              - lambda: |-
+                  lv_scr_load(id(page_horario_emma).obj);
