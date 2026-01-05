@@ -3,8 +3,15 @@ esphome:
   platform: ESP8266
   board: esp01_1m
 
-web_server:
-  port: 80
+logger:
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
 
 wifi:
   ssid: !secret wifi_ssid
@@ -15,24 +22,16 @@ wifi:
     gateway: !secret gateway
     subnet: !secret subnet
 
-  # # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: !secret ap_ssid
+    ssid: "Luz Cocina"
     password: !secret ap_password
 
 captive_portal:
 
-# Enable logging
-logger:
+web_server:
+  port: 80
 
-# Enable Home Assistant API
-api:
-  encryption:
-    key: !secret api_key
-
-ota:
-  - platform: esphome
-    password: !secret ota_password
+# ////////////////////////////////////////////////////////////////////////
 
 text_sensor:
   - platform: version

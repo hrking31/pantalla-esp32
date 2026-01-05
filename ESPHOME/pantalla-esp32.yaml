@@ -21,6 +21,11 @@ substitutions:
   wifi: "\U000F05A9"
   power: "\U000F0425"
   OutdoorLamp: "\U000F1054"
+  MicrosoftXboxControllerMenu: "\U000F0E6F"
+  Palette: "\U000F03D8"
+  CeilingLightMultiple: "\U000F18DD"
+  CalendarMonth: "\U000F0E17"
+  SunThermometer: "\U000F18D6"
 
 esphome:
   name: "${name}"
@@ -44,10 +49,8 @@ psram:
   mode: octal
   speed: 80MHz
 
-# Enable logging
 logger:
 
-# Enable Home Assistant API
 api:
   encryption:
     key: !secret api_key
@@ -78,15 +81,16 @@ wifi:
     gateway: !secret gateway
     subnet: !secret subnet
 
-  # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: !secret ap_ssid
+    ssid: "Pantalla-esp32"
     password: !secret ap_password
 
 captive_portal:
 
 web_server:
   port: 80
+
+# ////////////////////////////////////////////////////////////////////////
 
 # ===============================================
 # =============== INTERRUPTORES =================
@@ -605,6 +609,11 @@ font:
         "\U000F0425",
         "\U000F09AB",
         "\U000F1054",
+        "\U000F0E6F",
+        "\U000F03D8",
+        "\U000F18DD",
+        "\U000F0E17",
+        "\U000F18D6",
       ]
 
   - file: "fonts/materialdesignicons-webfont.ttf" # http://materialdesignicons.com/cdn/7.4.47/
@@ -800,31 +809,31 @@ lvgl:
       # # ===============================================
       # # =========== PIE DE PAGINA =====================
       # # ===============================================
-      - buttonmatrix:
-          align: bottom_mid
-          styles: header_footer
-          pad_all: 0
-          outline_width: 0
-          id: top_layer
-          items:
-            styles: header_footer
-          rows:
-            - buttons:
-                - id: page_prev
-                  text: "\uF053"
-                  on_press:
-                    then:
-                      lvgl.page.previous:
-                - id: page_home
-                  text: "\uF015"
-                  on_press:
-                    then:
-                      lvgl.page.show: page_luz
-                - id: page_next
-                  text: "\uF054"
-                  on_press:
-                    then:
-                      lvgl.page.next:
+      # - buttonmatrix:
+      #     align: bottom_mid
+      #     styles: header_footer
+      #     pad_all: 0
+      #     outline_width: 0
+      #     id: top_layer
+      #     items:
+      #       styles: header_footer
+      #     rows:
+      #       - buttons:
+      #           - id: page_prev
+      #             text: "\uF053"
+      #             on_press:
+      #               then:
+      #                 lvgl.page.previous:
+      #           - id: page_home
+      #             text: "\uF015"
+      #             on_press:
+      #               then:
+      #                 lvgl.page.show: page_luz
+      #           - id: page_next
+      #             text: "\uF054"
+      #             on_press:
+      #               then:
+      #                 lvgl.page.next:
 
   # # ===============================================
   # # ============== PAGINAS ========================
@@ -859,8 +868,151 @@ lvgl:
             on_click:
               light.toggle: internal_light
 
+        #================= BOTON MUNU ====================
+        - button:
+            align: BOTTOM_MID
+            width: 470
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_opa: TRANSP
+            radius: 0
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0E6F"
+            on_click:
+              - lambda: lv_scr_load(id(page_menu).obj);
+
         #  ===============================================
-        # # =========== PAGINA VENTILADORES ==============
+        # # =============== PAGINA MENU ==================
+        # # ==============================================
+    - id: page_menu
+      bg_color: 0x00ffff
+      bg_opa: COVER
+      widgets:
+        - obj:
+            align: TOP_MID
+            styles: header_footer
+            widgets:
+              - label:
+                  text: "MENU"
+                  align: TOP_LEFT
+                  text_align: left
+                  text_color: 0xFFFFFF
+
+        #================= BOTON MUNU ====================
+        - button:
+            align: BOTTOM_MID
+            width: 475
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            radius: 0
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0E6F"
+            on_click:
+              - lambda: lv_scr_load(id(page_luz).obj);
+
+        ##################### VENTILADOR #####################
+        - button:
+            x: 40
+            y: 50
+            width: 120
+            height: 140
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0210"
+            on_click:
+              - lambda: |-
+                  lv_scr_load(id(page_ventilador).obj);
+
+        ##################### LUCES #####################
+        - button:
+            x: 180
+            y: 50
+            width: 120
+            height: 140
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F18DD"
+            on_click:
+              - lambda: |-
+                  lv_scr_load(id(page_luces).obj);
+
+        ################ LAMPARA COLORES ##################
+        - button:
+            x: 320
+            y: 50
+            width: 120
+            height: 140
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F1054"
+            on_click:
+              - lambda: |-
+                  lv_scr_load(id(page_lampara).obj);
+
+        ##################### HORA DYA #####################
+        - button:
+            x: 40
+            y: 250
+            width: 120
+            height: 140
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0150"
+            on_click:
+              - lambda: |-
+                  lv_scr_load(id(page_reloj).obj);
+
+        ##################### TEMPERATURA #####################
+        - button:
+            x: 180
+            y: 250
+            width: 120
+            height: 140
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F18D6"
+            on_click:
+              - lambda: |-
+                  lv_scr_load(id(page_temperatura).obj);
+
+        ##################### HORARIO EMMA #####################
+        - button:
+            x: 320
+            y: 250
+            width: 120
+            height: 140
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0E17"
+            on_click:
+              - lambda: |-
+                  lv_scr_load(id(page_horario_emma).obj);
+
+        #  ===============================================
+        # # =========== PAGINA VENTILADOR  ===============
         # # ==============================================
     - id: page_ventilador
       bg_color: 0xFFB6C1
@@ -875,6 +1027,26 @@ lvgl:
                   align: TOP_LEFT
                   text_align: left
                   text_color: 0xFFFFFF
+
+        #================= BOTON MUNU ====================
+        - button:
+            align: BOTTOM_MID
+            width: 475
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_opa: TRANSP
+            radius: 0
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0E6F"
+            on_click:
+              - lambda: lv_scr_load(id(page_menu).obj);
+
         #================= FAN 1 ====================
         - button:
             x: 20
@@ -1081,6 +1253,25 @@ lvgl:
                   data:
                     entity_id: light.luz_juegos
 
+        #================= BOTON MUNU ====================
+        - button:
+            align: BOTTOM_MID
+            width: 475
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_opa: TRANSP
+            radius: 0
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0E6F"
+            on_click:
+              - lambda: lv_scr_load(id(page_menu).obj);
+
         #  ===============================================
         # # =========== PAGINA LAMPARA ==============
         # # ==============================================
@@ -1114,6 +1305,8 @@ lvgl:
                   data:
                     entity_id: light.lampara_pricesas
                     brightness: !lambda return int(x);
+
+        #================= BOTON ON-OFF ====================
         - button:
             id: light_princesas_btn
             x: 305
@@ -1132,6 +1325,39 @@ lvgl:
                   action: light.toggle
                   data:
                     entity_id: light.lampara_pricesas
+
+        #================= BOTON A COLORES ====================
+        - button:
+            x: 305
+            y: 310
+            width: 120
+            height: 100
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F03D8"
+            on_click:
+              - lambda: lv_scr_load(id(page_lampara_color).obj);
+
+        #================= BOTON MUNU ====================
+        - button:
+            align: BOTTOM_MID
+            width: 475
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_opa: TRANSP
+            radius: 0
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0E6F"
+            on_click:
+              - lambda: lv_scr_load(id(page_menu).obj);
 
         #  ===============================================
         # # =========== PAGINA COLORES ==============
@@ -1285,6 +1511,25 @@ lvgl:
                     entity_id: input_text.color_seleccionado
                     value: "255, 127, 80"
 
+        #================= BOTON ATRAS LAMPARA ====================
+        - button:
+            align: BOTTOM_MID
+            width: 475
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_opa: TRANSP
+            radius: 0
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0E6F"
+            on_click:
+              - lambda: lv_scr_load(id(page_lampara).obj);
+
         #  ===============================================
         # # =============== PAGINA RELOJ =================
         # # ==============================================
@@ -1326,6 +1571,25 @@ lvgl:
             text: "ENERO 01"
             text_color: 0x000000
 
+        #================= BOTON MUNU ====================
+        - button:
+            align: BOTTOM_MID
+            width: 475
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_opa: TRANSP
+            radius: 0
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0E6F"
+            on_click:
+              - lambda: lv_scr_load(id(page_menu).obj);
+
         #  ===============================================
         # # =========== PAGINA TEMPERATURA ==============
         # # ==============================================
@@ -1356,6 +1620,25 @@ lvgl:
             text: "TEMPERATURA DEL CUARTO"
             align: CENTER
             y: 100
+
+        #================= BOTON MUNU ====================
+        - button:
+            align: BOTTOM_MID
+            width: 475
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_opa: TRANSP
+            radius: 0
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0E6F"
+            on_click:
+              - lambda: lv_scr_load(id(page_menu).obj);
 
         #  ===============================================
         # # ======= PAGINA HORARIO CLASES EMMA ===========
@@ -1444,6 +1727,25 @@ lvgl:
               - lambda: |-
                   lv_scr_load(id(page_viernes).obj);
 
+        #================= BOTON MUNU ====================
+        - button:
+            align: BOTTOM_MID
+            width: 475
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_opa: TRANSP
+            radius: 0
+            widgets:
+              - label:
+                  align: CENTER
+                  text_font: light48
+                  text: "\U000F0E6F"
+            on_click:
+              - lambda: lv_scr_load(id(page_menu).obj);
+
         #  ===============================================
         # # =============== PAGINA LUNES =================
         # # ==============================================
@@ -1460,18 +1762,23 @@ lvgl:
                   align: TOP_LEFT
                   text_align: left
                   text_color: 0xFFFFFF
+
+        #================= BOTON MUNU ====================
         - button:
-            x: 20
-            y: 60
-            width: 200
-            height: 160
+            align: BOTTOM_MID
+            width: 475
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_opa: TRANSP
+            radius: 0
             widgets:
               - label:
                   align: CENTER
                   text_font: light48
-                  text: $light_recessed
-              - label:
-                  text: "Volver"
+                  text: "\U000F0E6F"
             on_click:
               - lambda: lv_scr_load(id(page_horario_emma).obj);
 
@@ -1491,18 +1798,23 @@ lvgl:
                   align: TOP_LEFT
                   text_align: left
                   text_color: 0xFFFFFF
+
+        #================= BOTON MUNU ====================
         - button:
-            x: 20
-            y: 60
-            width: 200
-            height: 160
+            align: BOTTOM_MID
+            width: 475
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_opa: TRANSP
+            radius: 0
             widgets:
               - label:
                   align: CENTER
                   text_font: light48
-                  text: $light_recessed
-              - label:
-                  text: "Volver"
+                  text: "\U000F0E6F"
             on_click:
               - lambda: lv_scr_load(id(page_horario_emma).obj);
 
@@ -1522,18 +1834,23 @@ lvgl:
                   align: TOP_LEFT
                   text_align: left
                   text_color: 0xFFFFFF
+
+        #================= BOTON MUNU ====================
         - button:
-            x: 20
-            y: 60
-            width: 200
-            height: 160
+            align: BOTTOM_MID
+            width: 475
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_opa: TRANSP
+            radius: 0
             widgets:
               - label:
                   align: CENTER
                   text_font: light48
-                  text: $light_recessed
-              - label:
-                  text: "Volver"
+                  text: "\U000F0E6F"
             on_click:
               - lambda: lv_scr_load(id(page_horario_emma).obj);
 
@@ -1553,18 +1870,23 @@ lvgl:
                   align: TOP_LEFT
                   text_align: left
                   text_color: 0xFFFFFF
+
+          #================= BOTON MUNU ====================
         - button:
-            x: 20
-            y: 60
-            width: 200
-            height: 160
+            align: BOTTOM_MID
+            width: 475
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_opa: TRANSP
+            radius: 0
             widgets:
               - label:
                   align: CENTER
                   text_font: light48
-                  text: $light_recessed
-              - label:
-                  text: "Volver"
+                  text: "\U000F0E6F"
             on_click:
               - lambda: lv_scr_load(id(page_horario_emma).obj);
 
@@ -1584,18 +1906,22 @@ lvgl:
                   align: TOP_LEFT
                   text_align: left
                   text_color: 0xFFFFFF
+
+        #================= BOTON MUNU ====================
         - button:
-            x: 20
-            y: 60
-            width: 200
-            height: 160
+            align: BOTTOM_MID
+            width: 475
+            height: 45
+            bg_color: 0x8A2BE2
+            bg_grad_color: 0xE6E6FA
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_opa: TRANSP
+            radius: 0
             widgets:
               - label:
                   align: CENTER
                   text_font: light48
-                  text: $light_recessed
-              - label:
-                  text: "Volver"
+                  text: "\U000F0E6F"
             on_click:
-              - lambda: |-
-                  lv_scr_load(id(page_horario_emma).obj);
+              - lambda: lv_scr_load(id(page_horario_emma).obj);

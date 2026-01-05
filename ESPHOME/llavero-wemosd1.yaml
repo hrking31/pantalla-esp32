@@ -4,10 +4,8 @@ esphome:
 esp8266:
   board: d1_mini_lite
 
-# Enable logging
 logger:
 
-# Enable Home Assistant API
 api:
   password: !secret api_key
 
@@ -24,9 +22,8 @@ wifi:
     gateway: !secret gateway
     subnet: !secret subnet
 
-  # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: !secret ap_ssid
+    ssid: "llavero-inteligente"
     password: !secret ap_password
 
 captive_portal:
@@ -34,6 +31,7 @@ captive_portal:
 web_server:
   port: 80
 
+# ////////////////////////////////////////////////////////////////////////
 text_sensor:
   - platform: wifi_info
     ip_address:
@@ -79,3 +77,6 @@ binary_sensor:
       mode:
         input: true
         pullup: true
+
+  - platform: status
+    name: "Llavero Inteligente"

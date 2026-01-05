@@ -1,0 +1,169 @@
+esphome:
+  name: temperatura
+
+esp8266:
+  board: d1_mini_lite
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_key
+
+# ota:
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  manual_ip:
+    static_ip: !secret ip_temperatura
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: 8.8.8.8
+    dns2: 1.1.1.1
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Temperatura"
+    password: !secret ap_password
+
+captive_portal:
+
+web_server:
+  port: 80
+
+  # ////////////////////////////////////////////////////////////////////////
+
+# -------- I2C --------
+i2c:
+  sda: D2
+  scl: D1
+  scan: true
+
+# -------- HTTP --------
+http_request:
+  useragent: esphome/d1mini
+  timeout: 10s
+  verify_ssl: false
+
+# -------- VARIABLES --------
+globals:
+  - id: last_temp_sent
+    type: float
+    restore_value: no
+    initial_value: "NAN"
+
+  - id: first_read
+    type: bool
+    restore_value: no
+    initial_value: "true"
+
+  - id: send_temp
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+# -------- SHT30 --------
+sensor:
+  - platform: sht3xd
+    address: 0x45
+    update_interval: 10s
+
+    temperature:
+      id: temp_sht30
+
+    humidity:
+      id: hum_sht30
+
+# -------- TIME --------
+time:
+  - platform: sntp
+    id: esptime
+    timezone: "America/Bogota"
+
+
+# -------- ENVÍO A FIREBASE TEMP Y HUM --------
+interval:
+  - interval: 10s
+    then:
+      - lambda: |-
+          id(send_temp) = false;
+
+          float temp = id(temp_sht30).state;
+          if (isnan(temp)) return;
+
+          if (id(first_read)) {
+            id(last_temp_sent) = temp;
+            id(first_read) = false;
+            return;
+          }
+
+          if (abs(temp - id(last_temp_sent)) >= 0.5) {
+            id(last_temp_sent) = temp;
+            id(send_temp) = true;
+          }
+
+      - if:
+          condition:
+            lambda: "return id(send_temp);"
+          then:
+            - http_request.send:
+                method: PATCH
+                url: "https://alarmas-itx-default-rtdb.firebaseio.com/sensores/Sala_1.json"
+                headers:
+                  Content-Type: application/json
+                body: !lambda |-
+                  char buffer[180];
+                  snprintf(
+                    buffer,
+                    sizeof(buffer),
+                    "{\"temperatura\": %.2f, \"humedad\": %.2f}",
+                    id(temp_sht30).state,
+                    id(hum_sht30).state
+                  );
+                  return std::string(buffer);
+
+  # -------- ENVÍO A FIREBASE HEARTBEAT (SIGUE VIVO) --------
+  - interval: 60s
+    then:
+      - http_request.send:
+          method: PATCH
+          url: "https://alarmas-itx-default-rtdb.firebaseio.com/heartbeat/Sala_1.json"
+          headers:
+            Content-Type: application/json
+          body: '{"timestamp":{".sv":"timestamp"}}'
+
+  # -------- GRAFICA --------
+  - interval: 60s
+    then:
+      - http_request.send:
+          method: PUT
+          url: !lambda |-
+            float temp = id(temp_sht30).state;
+            time_t now = id(esptime).now().timestamp;
+            struct tm* tm_info = localtime(&now);
+            char fecha[11];
+            snprintf(fecha, sizeof(fecha),
+                     "%04d-%02d-%02d",
+                     tm_info->tm_year + 1900,
+                     tm_info->tm_mon + 1,
+                     tm_info->tm_mday);
+            unsigned long long ts_ms = (unsigned long long)now * 1000;
+            char url[160];
+            snprintf(url, sizeof(url),
+                     "https://alarmas-itx-default-rtdb.firebaseio.com/grafica/Sala_1/%s/%llu.json",
+                     fecha, ts_ms);
+            return std::string(url);
+          headers:
+            Content-Type: application/json
+          body: !lambda |-
+            char buf[40];
+            snprintf(buf, sizeof(buf), "{\"value\": %.2f}", id(temp_sht30).state);
+            return std::string(buf);
+          capture_response: false

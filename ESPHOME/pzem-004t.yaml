@@ -10,16 +10,17 @@ logger:
 api:
 
 ota:
+  platform: esphome
   password: "752fbbf3bd0740646b4e927dbf8f5124"
 
 wifi:
   ssid: "EMMANNETTE"
   password: "22736950"
   
-  manual_ip:
-    static_ip: 192.168.1.49
-    gateway: 177.255.192.1
-    subnet: 255.255.248.0
+  # manual_ip:
+  #   static_ip: 192.168.1.49
+  #   gateway: 177.255.192.1
+  #   subnet: 255.255.248.0
 
 
 
