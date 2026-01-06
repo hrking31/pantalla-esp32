@@ -87,7 +87,6 @@ time:
     id: esptime
     timezone: "America/Bogota"
 
-
 # -------- ENVÍO A FIREBASE TEMP Y HUM --------
 interval:
   - interval: 10s
@@ -148,7 +147,7 @@ interval:
             float temp = id(temp_sht30).state;
             time_t now = id(esptime).now().timestamp;
             struct tm* tm_info = localtime(&now);
-            char fecha[11];
+            char fecha[32];
             snprintf(fecha, sizeof(fecha),
                      "%04d-%02d-%02d",
                      tm_info->tm_year + 1900,
@@ -164,6 +163,6 @@ interval:
             Content-Type: application/json
           body: !lambda |-
             char buf[40];
-            snprintf(buf, sizeof(buf), "{\"value\": %.2f}", id(temp_sht30).state);
+            snprintf(buf, sizeof(buf), "{\"t\": %.2f}", id(temp_sht30).state);
             return std::string(buf);
           capture_response: false
