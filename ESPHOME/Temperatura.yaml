@@ -127,6 +127,7 @@ interval:
                     id(hum_sht30).state
                   );
                   return std::string(buffer);
+                capture_response: false
 
   # -------- ENVÍO A FIREBASE HEARTBEAT (SIGUE VIVO) --------
   - interval: 60s
@@ -137,6 +138,7 @@ interval:
           headers:
             Content-Type: application/json
           body: '{"timestamp":{".sv":"timestamp"}}'
+          capture_response: false
 
   # -------- GRAFICA --------
   - interval: 60s
@@ -144,8 +146,10 @@ interval:
       - http_request.send:
           method: PUT
           url: !lambda |-
-            float temp = id(temp_sht30).state;
             time_t now = id(esptime).now().timestamp;
+            if (now < 1600000000) {
+              return std::string("");
+            }
             struct tm* tm_info = localtime(&now);
             char fecha[32];
             snprintf(fecha, sizeof(fecha),
@@ -162,7 +166,16 @@ interval:
           headers:
             Content-Type: application/json
           body: !lambda |-
+            float t = id(temp_sht30).state;
+
+            if (id(first_read)) {
+            id(first_read) = false;
+            return std::string(""); 
+            }
+
+            if (isnan(t)) return std::string("{\"t\":null}");
+
             char buf[40];
-            snprintf(buf, sizeof(buf), "{\"t\": %.2f}", id(temp_sht30).state);
+            snprintf(buf, sizeof(buf), "{\"t\": %.2f}", t);
             return std::string(buf);
           capture_response: false
