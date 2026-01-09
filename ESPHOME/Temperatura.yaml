@@ -54,6 +54,11 @@ http_request:
 
 # -------- VARIABLES --------
 globals:
+  - id: startup_counter
+    type: int
+    restore_value: no
+    initial_value: "0"
+
   - id: last_temp_sent
     type: float
     restore_value: no
@@ -68,6 +73,11 @@ globals:
     type: bool
     restore_value: no
     initial_value: "false"
+
+  - id: first_graph_sent
+    type: bool
+    restore_value: no
+    initial_value: "true"
 
 # -------- SHT30 --------
 sensor:
@@ -97,15 +107,22 @@ interval:
           float temp = id(temp_sht30).state;
           if (isnan(temp)) return;
 
+          if (id(startup_counter) < 3) {
+            id(startup_counter)++;
+            return; 
+          }
+
           if (id(first_read)) {
             id(last_temp_sent) = temp;
             id(first_read) = false;
-            return;
+            id(send_temp) = true;    
           }
-
-          if (abs(temp - id(last_temp_sent)) >= 0.5) {
+          else if (abs(temp - id(last_temp_sent)) >= 0.5) {
             id(last_temp_sent) = temp;
             id(send_temp) = true;
+          }
+          else {
+            return;
           }
 
       - if:
@@ -127,7 +144,6 @@ interval:
                     id(hum_sht30).state
                   );
                   return std::string(buffer);
-                capture_response: false
 
   # -------- ENVÍO A FIREBASE HEARTBEAT (SIGUE VIVO) --------
   - interval: 60s
@@ -138,7 +154,6 @@ interval:
           headers:
             Content-Type: application/json
           body: '{"timestamp":{".sv":"timestamp"}}'
-          capture_response: false
 
   # -------- GRAFICA --------
   - interval: 60s
@@ -168,8 +183,8 @@ interval:
           body: !lambda |-
             float t = id(temp_sht30).state;
 
-            if (id(first_read)) {
-            id(first_read) = false;
+            if (id(first_graph_sent)) {
+            id(first_graph_sent) = false;
             return std::string(""); 
             }
 
