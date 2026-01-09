@@ -49,35 +49,20 @@ i2c:
 # -------- HTTP --------
 http_request:
   useragent: esphome/d1mini
-  timeout: 10s
+  timeout: 5s
   verify_ssl: false
+  id: http_request_sala1
 
 # -------- VARIABLES --------
 globals:
-  - id: startup_counter
-    type: int
-    restore_value: no
-    initial_value: "0"
-
   - id: last_temp_sent
     type: float
-    restore_value: no
     initial_value: "NAN"
 
-  - id: first_read
-    type: bool
-    restore_value: no
-    initial_value: "true"
-
-  - id: send_temp
-    type: bool
-    restore_value: no
-    initial_value: "false"
-
-  - id: first_graph_sent
-    type: bool
-    restore_value: no
-    initial_value: "true"
+  - id: temp_to_send
+    type: float
+  - id: hum_to_send
+    type: float
 
 # -------- SHT30 --------
 sensor:
@@ -95,55 +80,40 @@ sensor:
 time:
   - platform: sntp
     id: esptime
-    timezone: "America/Bogota"
 
-# -------- ENVÍO A FIREBASE TEMP Y HUM --------
+# -------- ACRIPT ENVÍO A FIREBASE TEMP Y HUM --------
+script:
+  - id: send_temp_hum
+    mode: parallel
+    then:
+      - http_request.send:
+          id: http_request_sala1
+          method: PATCH
+          url: "https://alarmas-itx-default-rtdb.firebaseio.com/sensores/Sala_1.json"
+          headers:
+            Content-Type: application/json
+          body: !lambda |-
+            char buffer[64];
+            sprintf(buffer, "{\"temperatura\": %.2f, \"humedad\": %.2f}", id(temp_to_send), id(hum_to_send));
+            return (std::string) buffer;
+
+# -------- LECTURA TEMP Y HUM --------
 interval:
   - interval: 10s
     then:
       - lambda: |-
-          id(send_temp) = false;
-
           float temp = id(temp_sht30).state;
+          float hum  = id(hum_sht30).state;
           if (isnan(temp)) return;
 
-          if (id(startup_counter) < 3) {
-            id(startup_counter)++;
-            return; 
-          }
-
-          if (id(first_read)) {
+          if (isnan(id(last_temp_sent)) || fabs(temp - id(last_temp_sent)) >= 0.5) {
+            id(temp_to_send) = temp;
+            id(hum_to_send) = hum;
             id(last_temp_sent) = temp;
-            id(first_read) = false;
-            id(send_temp) = true;    
+            
+            id(send_temp_hum).execute();
+            
           }
-          else if (abs(temp - id(last_temp_sent)) >= 0.5) {
-            id(last_temp_sent) = temp;
-            id(send_temp) = true;
-          }
-          else {
-            return;
-          }
-
-      - if:
-          condition:
-            lambda: "return id(send_temp);"
-          then:
-            - http_request.send:
-                method: PATCH
-                url: "https://alarmas-itx-default-rtdb.firebaseio.com/sensores/Sala_1.json"
-                headers:
-                  Content-Type: application/json
-                body: !lambda |-
-                  char buffer[180];
-                  snprintf(
-                    buffer,
-                    sizeof(buffer),
-                    "{\"temperatura\": %.2f, \"humedad\": %.2f}",
-                    id(temp_sht30).state,
-                    id(hum_sht30).state
-                  );
-                  return std::string(buffer);
 
   # -------- ENVÍO A FIREBASE HEARTBEAT (SIGUE VIVO) --------
   - interval: 60s
@@ -158,39 +128,24 @@ interval:
   # -------- GRAFICA --------
   - interval: 60s
     then:
-      - http_request.send:
-          method: PUT
-          url: !lambda |-
-            time_t now = id(esptime).now().timestamp;
-            if (now < 1600000000) {
-              return std::string("");
-            }
-            struct tm* tm_info = localtime(&now);
-            char fecha[32];
-            snprintf(fecha, sizeof(fecha),
-                     "%04d-%02d-%02d",
-                     tm_info->tm_year + 1900,
-                     tm_info->tm_mon + 1,
-                     tm_info->tm_mday);
-            unsigned long long ts_ms = (unsigned long long)now * 1000;
-            char url[160];
-            snprintf(url, sizeof(url),
-                     "https://alarmas-itx-default-rtdb.firebaseio.com/grafica/Sala_1/%s/%llu.json",
-                     fecha, ts_ms);
-            return std::string(url);
+      - http_request.post:
+          url: "https://alarmas-itx-default-rtdb.firebaseio.com/grafica/Sala_1.json"
           headers:
             Content-Type: application/json
           body: !lambda |-
             float t = id(temp_sht30).state;
+            if (isnan(t)) return std::string("");
 
-            if (id(first_graph_sent)) {
-            id(first_graph_sent) = false;
-            return std::string(""); 
-            }
+            time_t now = id(esptime).now().timestamp;
 
-            if (isnan(t)) return std::string("{\"t\":null}");
+            char body[64];
+            snprintf(
+              body,
+              sizeof(body),
+              "{\"t\": %.2f, \"ts\": %lu}",
+              t,
+              (unsigned long)now
+            );
+            return std::string(body);
 
-            char buf[40];
-            snprintf(buf, sizeof(buf), "{\"t\": %.2f}", t);
-            return std::string(buf);
           capture_response: false
