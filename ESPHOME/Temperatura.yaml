@@ -137,14 +137,15 @@ interval:
             if (isnan(t)) return std::string("");
 
             time_t now = id(esptime).now().timestamp;
+            unsigned long long ts_ms = (unsigned long long) now * 1000ULL;
 
             char body[64];
             snprintf(
               body,
               sizeof(body),
-              "{\"t\": %.2f, \"ts\": %lu}",
+              "{\"t\": %.2f, \"ts\": %llu}",
               t,
-              (unsigned long)now
+              ts_ms
             );
             return std::string(body);
 
