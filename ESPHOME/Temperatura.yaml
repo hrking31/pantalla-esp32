@@ -18,15 +18,23 @@ ota:
     password: !secret ota_password
 
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
+  ssid: APNogales
+  password: Igga2023
+  
+  on_connect:
+    then:
+      - script.stop: wifi_connecting
+      - script.execute: wifi_connected
 
-  manual_ip:
-    static_ip: !secret ip_temperatura
-    gateway: !secret gateway
-    subnet: !secret subnet
-    dns1: 8.8.8.8
-    dns2: 1.1.1.1
+  on_disconnect:
+    then:
+      - script.execute: wifi_connecting
+  # manual_ip:
+  #   static_ip: !secret ip_temperatura
+  #   gateway: !secret gateway
+  #   subnet: !secret subnet
+  #   dns1: 8.8.8.8
+  #   dns2: 1.1.1.1
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
@@ -41,10 +49,10 @@ web_server:
   # ////////////////////////////////////////////////////////////////////////
 
 # -------- I2C --------
-i2c:
-  sda: D2
-  scl: D1
-  scan: true
+# i2c:
+#   sda: D2
+#   scl: D1
+#   scan: true
 
 # -------- HTTP --------
 http_request:
@@ -65,16 +73,73 @@ globals:
     type: float
 
 # -------- SHT30 --------
+# sensor:
+#   - platform: sht3xd
+#     address: 0x45
+#     update_interval: 10s
+
+#     temperature:
+#       id: temp_sht30
+
+#     humidity:
+#       id: hum_sht30
+
+# landa
+#           float temp = id(temp_sht30).state;
+#           float hum  = id(hum_sht30).state;
+
+# GRAFICA
+#             float t = id(temp_sht30).state;
+
+# -------- DHT11 --------
 sensor:
-  - platform: sht3xd
-    address: 0x45
-    update_interval: 10s
+  - platform: dht
+    pin: D1
+    model: DHT11
+    update_interval: 30s
 
     temperature:
-      id: temp_sht30
+      id: temp_dht
+      name: "Temperatura Sala 3"
 
     humidity:
-      id: hum_sht30
+      id: hum_dht
+      name: "Humedad Sala 3"
+
+#---------- LED ESTADO WIFI -----------
+output:
+  - platform: gpio
+    pin:
+      number: D4
+      inverted: true
+    id: wifi_led
+
+light:
+  - platform: binary
+    output: wifi_led
+    id: wifi_led_light
+
+script:
+  - id: wifi_connecting
+    mode: restart
+    then:
+      - while:
+          condition:
+            not:
+              wifi.connected:
+          then:
+            - light.turn_on: wifi_led_light
+            - delay: 300ms
+            - light.turn_off: wifi_led_light
+            - delay: 300ms
+
+  - id: wifi_connected
+    then:
+      - light.turn_on: wifi_led_light
+
+  - id: wifi_disconnected
+    then:
+      - light.turn_off: wifi_led_light
 
 # -------- TIME --------
 time:
@@ -89,7 +154,7 @@ script:
       - http_request.send:
           id: http_request_sala1
           method: PATCH
-          url: "https://alarmas-itx-default-rtdb.firebaseio.com/sensores/Sala_1.json"
+          url: "https://alarmas-itx-default-rtdb.firebaseio.com/sensores/Sala_3.json"
           headers:
             Content-Type: application/json
           body: !lambda |-
@@ -102,8 +167,8 @@ interval:
   - interval: 10s
     then:
       - lambda: |-
-          float temp = id(temp_sht30).state;
-          float hum  = id(hum_sht30).state;
+         float temp = id(temp_dht).state;
+         float hum  = id(hum_dht).state;
           if (isnan(temp)) return;
 
           if (isnan(id(last_temp_sent)) || fabs(temp - id(last_temp_sent)) >= 0.5) {
@@ -120,7 +185,7 @@ interval:
     then:
       - http_request.send:
           method: PATCH
-          url: "https://alarmas-itx-default-rtdb.firebaseio.com/heartbeat/Sala_1.json"
+          url: "https://alarmas-itx-default-rtdb.firebaseio.com/heartbeat/Sala_3.json"
           headers:
             Content-Type: application/json
           body: '{"timestamp":{".sv":"timestamp"}}'
@@ -129,11 +194,12 @@ interval:
   - interval: 60s
     then:
       - http_request.post:
-          url: "https://alarmas-itx-default-rtdb.firebaseio.com/grafica/Sala_1.json"
+          url: "https://alarmas-itx-default-rtdb.firebaseio.com/grafica/Sala_3.json"
           headers:
             Content-Type: application/json
           body: !lambda |-
-            float t = id(temp_sht30).state;
+            float t = id(temp_dht).state;
+
             if (isnan(t)) return std::string("");
 
             time_t now = id(esptime).now().timestamp;
