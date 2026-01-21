@@ -7,11 +7,6 @@ esp8266:
 # Enable logging
 logger:
 
-# Enable Home Assistant API
-api:
-  encryption:
-    key: !secret api_key
-
 # ota:
 ota:
   - platform: esphome
@@ -29,16 +24,10 @@ wifi:
   on_disconnect:
     then:
       - script.execute: wifi_connecting
-  # manual_ip:
-  #   static_ip: !secret ip_temperatura
-  #   gateway: !secret gateway
-  #   subnet: !secret subnet
-  #   dns1: 8.8.8.8
-  #   dns2: 1.1.1.1
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Temperatura"
+    ssid: "Temperatura sala_2"
     password: !secret ap_password
 
 captive_portal:
@@ -48,18 +37,12 @@ web_server:
 
   # ////////////////////////////////////////////////////////////////////////
 
-# -------- I2C --------
-# i2c:
-#   sda: D2
-#   scl: D1
-#   scan: true
-
 # -------- HTTP --------
 http_request:
   useragent: esphome/d1mini
   timeout: 5s
   verify_ssl: false
-  id: http_request_sala1
+  id: http_request_sala2
 
 # -------- VARIABLES --------
 globals:
@@ -72,25 +55,6 @@ globals:
   - id: hum_to_send
     type: float
 
-# -------- SHT30 --------
-# sensor:
-#   - platform: sht3xd
-#     address: 0x45
-#     update_interval: 10s
-
-#     temperature:
-#       id: temp_sht30
-
-#     humidity:
-#       id: hum_sht30
-
-# landa
-#           float temp = id(temp_sht30).state;
-#           float hum  = id(hum_sht30).state;
-
-# GRAFICA
-#             float t = id(temp_sht30).state;
-
 # -------- DHT11 --------
 sensor:
   - platform: dht
@@ -100,18 +64,18 @@ sensor:
 
     temperature:
       id: temp_dht
-      name: "Temperatura Sala 3"
+      name: "Temperatura Sala 2"
 
     humidity:
       id: hum_dht
-      name: "Humedad Sala 3"
+      name: "Humedad Sala 2"
 
 #---------- LED ESTADO WIFI -----------
 output:
   - platform: gpio
     pin:
       number: D4
-      inverted: true
+      # inverted: true
     id: wifi_led
 
 light:
@@ -119,7 +83,28 @@ light:
     output: wifi_led
     id: wifi_led_light
 
+# -------- TIME --------
+time:
+  - platform: sntp
+    id: esptime
+
+# -------- SCRIPT ENVÍO A FIREBASE TEMP Y HUM --------
 script:
+  - id: send_temp_hum
+    mode: parallel
+    then:
+      - http_request.send:
+          id: http_request_sala2
+          method: PATCH
+          url: "https://alarmas-itx-default-rtdb.firebaseio.com/sensores/Sala_2.json"
+          headers:
+            Content-Type: application/json
+          body: !lambda |-
+            char buffer[64];
+            sprintf(buffer, "{\"temperatura\": %.2f, \"humedad\": %.2f}", id(temp_to_send), id(hum_to_send));
+            return (std::string) buffer;
+
+#---------- SCRIPT CONEXION WIFI ------------------------
   - id: wifi_connecting
     mode: restart
     then:
@@ -139,28 +124,7 @@ script:
 
   - id: wifi_disconnected
     then:
-      - light.turn_off: wifi_led_light
-
-# -------- TIME --------
-time:
-  - platform: sntp
-    id: esptime
-
-# -------- ACRIPT ENVÍO A FIREBASE TEMP Y HUM --------
-script:
-  - id: send_temp_hum
-    mode: parallel
-    then:
-      - http_request.send:
-          id: http_request_sala1
-          method: PATCH
-          url: "https://alarmas-itx-default-rtdb.firebaseio.com/sensores/Sala_3.json"
-          headers:
-            Content-Type: application/json
-          body: !lambda |-
-            char buffer[64];
-            sprintf(buffer, "{\"temperatura\": %.2f, \"humedad\": %.2f}", id(temp_to_send), id(hum_to_send));
-            return (std::string) buffer;
+      - light.turn_off: wifi_led_light            
 
 # -------- LECTURA TEMP Y HUM --------
 interval:
@@ -185,7 +149,7 @@ interval:
     then:
       - http_request.send:
           method: PATCH
-          url: "https://alarmas-itx-default-rtdb.firebaseio.com/heartbeat/Sala_3.json"
+          url: "https://alarmas-itx-default-rtdb.firebaseio.com/heartbeat/Sala_2.json"
           headers:
             Content-Type: application/json
           body: '{"timestamp":{".sv":"timestamp"}}'
@@ -194,7 +158,7 @@ interval:
   - interval: 60s
     then:
       - http_request.post:
-          url: "https://alarmas-itx-default-rtdb.firebaseio.com/grafica/Sala_3.json"
+          url: "https://alarmas-itx-default-rtdb.firebaseio.com/grafica/Sala_2.json"
           headers:
             Content-Type: application/json
           body: !lambda |-
