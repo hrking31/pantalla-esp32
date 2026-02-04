@@ -37,6 +37,12 @@ web_server:
 
   # ////////////////////////////////////////////////////////////////////////
 
+# -------- I2C --------
+i2c:
+  sda: D2
+  scl: D1
+  scan: true
+
 # -------- HTTP --------
 http_request:
   useragent: esphome/d1mini
@@ -55,20 +61,17 @@ globals:
   - id: hum_to_send
     type: float
 
-# -------- DHT11 --------
+# -------- SHT30 --------
 sensor:
-  - platform: dht
-    pin: D1
-    model: DHT11
-    update_interval: 30s
+  - platform: sht3xd
+    address: 0x45
+    update_interval: 10s
 
     temperature:
-      id: temp_dht
-      name: "Temperatura Sala 4"
+      id: temp_sht30
 
     humidity:
-      id: hum_dht
-      name: "Humedad Sala 4"
+      id: hum_sht30
 
 #---------- LED ESTADO WIFI -----------
 output:
@@ -132,8 +135,8 @@ interval:
   - interval: 10s
     then:
       - lambda: |-
-          float temp = id(temp_dht).state;
-          float hum  = id(hum_dht).state;
+          float temp = id(temp_sht30).state;
+          float hum  = id(hum_sht30).state;
            if (isnan(temp)) return;
 
            if (isnan(id(last_temp_sent)) || fabs(temp - id(last_temp_sent)) >= 0.5) {
@@ -162,13 +165,13 @@ interval:
           url: !lambda |-
             auto now = id(esptime).now();
             char url_buffer[128];
-            sprintf(url_buffer, "https://alarmas-itx-default-rtdb.firebaseio.com/grafica/%04d-%02d-%02d/Sala_4.json", 
+            sprintf(url_buffer, "https://alarmas-itx-default-rtdb.firebaseio.com/grafica/Sala_4/%04d-%02d-%02d.json", 
                     now.year, now.month, now.day_of_month);
             return (std::string) url_buffer;
           headers:
             Content-Type: application/json
           body: !lambda |-
-            float t = id(temp_dht).state;
+            float t = id(temp_sht30).state;
 
             if (isnan(t)) return std::string("");
 

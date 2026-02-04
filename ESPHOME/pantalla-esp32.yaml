@@ -187,7 +187,7 @@ binary_sensor:
   # ===============================================
   - platform: homeassistant
     id: fan_velocidad_1
-    entity_id: fan.ventilador_02_l3
+    entity_id: fan.princesas_1
     publish_initial_state: true
     on_state:
       then:
@@ -208,7 +208,7 @@ binary_sensor:
   # ===============================================
   - platform: homeassistant
     id: fan_velocidad_2
-    entity_id: fan.ventilador_02_l2
+    entity_id: fan.princesas_2
     publish_initial_state: true
     on_state:
       then:
@@ -229,7 +229,7 @@ binary_sensor:
   # ===============================================
   - platform: homeassistant
     id: fan_velocidad_3
-    entity_id: fan.ventilador_02_l1
+    entity_id: fan.princesas_3
     publish_initial_state: true
     on_state:
       then:
@@ -250,7 +250,7 @@ binary_sensor:
   # ===============================================
   - platform: homeassistant
     id: fan_velocidad_4
-    entity_id: fan.ventilador_02_l4
+    entity_id: fan.princesas_4
     publish_initial_state: true
     on_state:
       then:
@@ -291,7 +291,7 @@ binary_sensor:
   # ===============================================
   - platform: homeassistant
     id: bano_luz
-    entity_id: light.luces_tocador_l2
+    entity_id: light.luz_bano
     publish_initial_state: true
     on_state:
       then:
@@ -1069,7 +1069,7 @@ lvgl:
               - homeassistant.action:
                   action: fan.toggle
                   data:
-                    entity_id: fan.ventilador_02_l3
+                    entity_id: fan.princesas_1
 
         #================= FAN 2 ====================
         - button:
@@ -1093,7 +1093,7 @@ lvgl:
               - homeassistant.action:
                   action: fan.toggle
                   data:
-                    entity_id: fan.ventilador_02_l2
+                    entity_id: fan.princesas_2
 
         #================= FAN 3 ====================
         - button:
@@ -1117,7 +1117,7 @@ lvgl:
               - homeassistant.action:
                   action: fan.toggle
                   data:
-                    entity_id: fan.ventilador_02_l1
+                    entity_id: fan.princesas_3
 
         #================= FAN 4 ====================
         - button:
@@ -1141,7 +1141,7 @@ lvgl:
               - homeassistant.action:
                   action: fan.toggle
                   data:
-                    entity_id: fan.ventilador_02_l4
+                    entity_id: fan.princesas_4
 
     # # ===============================================
     # # =============== PAGINA LUCES ==================
@@ -1227,7 +1227,7 @@ lvgl:
               - homeassistant.action:
                   action: light.toggle
                   data:
-                    entity_id: light.luces_tocador_l2
+                    entity_id: light.luz_bano
 
         #================= LUZ JUEGOS ====================
         - button:

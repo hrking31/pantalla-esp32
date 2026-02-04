@@ -59,11 +59,11 @@ binary_sensor:
 
 switch:
   - platform: gpio
-    name: "Pc"
+    name: "Monitor 2"
     pin: GPIO12
     id: relay
   - platform: gpio
-    name: "Monitor"
+    name: "Monitor 1"
     pin: GPIO05
     id: relay2
 
