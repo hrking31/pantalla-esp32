@@ -149,14 +149,14 @@ interval:
            }
 
   # -------- ENVÍO A FIREBASE HEARTBEAT (SIGUE VIVO) --------
-  - interval: 60s
-    then:
-      - http_request.send:
-          method: PATCH
-          url: "https://alarmas-itx-default-rtdb.firebaseio.com/heartbeat/Sala_4.json"
-          headers:
-            Content-Type: application/json
-          body: '{"timestamp":{".sv":"timestamp"}}'
+  # - interval: 60s
+  #   then:
+  #     - http_request.send:
+  #         method: PATCH
+  #         url: "https://alarmas-itx-default-rtdb.firebaseio.com/heartbeat/Sala_4.json"
+  #         headers:
+  #           Content-Type: application/json
+  #         body: '{"timestamp":{".sv":"timestamp"}}'
 
   # -------- GRAFICA --------
   - interval: 60s
