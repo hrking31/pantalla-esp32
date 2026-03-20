@@ -1,0 +1,252 @@
+esphome:
+  name: bluetooth-proxy-wt32
+
+esp32:
+  board: wt32-eth01
+  framework:
+    type: esp-idf
+
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk:
+    pin: GPIO0
+    mode: CLK_EXT_IN
+  phy_addr: 1
+  power_pin: GPIO16
+
+  manual_ip:
+    static_ip: !secret ip_BluetoothEthernetProxy
+    gateway: !secret gateway
+    subnet: !secret subnet
+    dns1: 8.8.8.8
+    dns2: 8.8.4.4
+
+# Enable logging
+logger:
+  level: WARN
+
+ota:
+  platform: esphome
+  password: !secret ota_password
+
+web_server:
+  port: 80
+
+# ////////////////////////////////////////////////////////////////////////
+
+# -------- HTTP --------
+http_request:
+  useragent: esphome-btproxy
+  timeout: 10s
+  id: http_request_sala4
+
+# -------- VARIABLES --------
+globals:
+  - id: temp_to_send
+    type: float
+    restore_value: no
+    initial_value: "NAN"
+
+  - id: hum_to_send
+    type: float
+    restore_value: no
+    initial_value: "NAN"
+
+  - id: bat_to_send
+    type: float
+    restore_value: no
+    initial_value: "NAN"
+
+  - id: last_ble_packet
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+
+  - id: sensor_ok
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: last_temp_sent
+    type: float
+    restore_value: no
+    initial_value: "NAN"
+
+  - id: firebase_url_secret
+    type: std::string
+    initial_value: !secret firebase_sala4_grafica
+
+# -------- TIME --------
+time:
+  - platform: sntp
+    id: esptime
+    timezone: "America/Bogota"
+
+# -------- BLUETOOTH --------
+esp32_ble_tracker:
+  scan_parameters:
+    active: false
+    interval: 60ms
+    window: 30ms
+
+  on_ble_service_data_advertise:
+    - mac_address: A4:C1:38:23:79:B1
+      service_uuid: FCD2
+      then:
+        - lambda: |-
+            id(last_ble_packet) = millis();
+            auto data = x;
+            for (size_t i = 0; i < data.size(); i++) {
+
+              // temperatura BTHome 
+              if (data[i] == 0x02 && i + 2 < data.size()) {
+                int16_t raw = data[i+1] | (data[i+2] << 8);
+                float temp = raw * 0.01;
+                id(temp_to_send) = temp;
+                i += 2;
+              }
+
+              // humedad BTHome
+              else if (data[i] == 0x03 && i + 2 < data.size()) {
+                uint16_t raw = data[i+1] | (data[i+2] << 8);
+                float hum = raw * 0.01;
+                id(hum_to_send) = hum;
+                i += 2;
+              }
+
+              // batería BTHome
+              else if (data[i] == 0x01 && i + 1 < data.size()) {
+                id(bat_to_send) = data[i+1];
+                i += 1;
+              }
+            }
+
+# -------- SCRIPT ENVÍO A FIREBASE TEMP Y HUM --------
+script:
+  - id: send_temp_hum
+    mode: parallel
+    then:
+      - http_request.send:
+          id: http_request_sala4
+          method: PATCH
+          url: !secret firebase_sala4_TempHum
+          request_headers:
+            Content-Type: application/json
+          body: !lambda |-
+            char buffer[160];
+
+            if (isnan(id(temp_to_send))) {
+              sprintf(buffer,
+                "{\"temperatura\":\"null\", \"humedad\":\"null\", \"bateria\":\"null\", \"estado\": \"offline\"}"
+              );
+            } else {
+              sprintf(buffer,
+                "{\"temperatura\": %.2f, \"humedad\": %.2f, \"bateria\": %.0f, \"estado\": \"online\"}",
+                id(temp_to_send),
+                id(hum_to_send),
+                id(bat_to_send)
+              );
+            }
+
+            return std::string(buffer);
+
+interval:
+  # -------- VERIFICAR SI SE RECIBEN PAQUETES BLUETOOTH --------
+  - interval: 10s
+    then:
+      - lambda: |-
+          float temp = id(temp_to_send);
+          float hum  = id(hum_to_send);
+
+          bool sensor_error = false;
+
+          // Sensor BLE desconectado
+          if (millis() - id(last_ble_packet) > 90000) {
+            sensor_error = true;
+          }
+
+          // Lectura inválida
+          if (std::isnan(temp)) {
+            sensor_error = true;
+          }
+
+          // Si hay error
+          if (sensor_error) {
+
+            id(sensor_ok) = false;
+
+            if (!std::isnan(id(last_temp_sent))) {
+
+              id(temp_to_send) = NAN;
+              id(hum_to_send)  = NAN;
+              id(last_temp_sent) = NAN;
+
+              id(send_temp_hum).execute();
+            }
+
+            return;
+          }
+
+          // Sensor funcionando
+          id(sensor_ok) = true;
+
+          // Enviar solo si cambia ≥ 0.5 °C
+          if (std::isnan(id(last_temp_sent)) ||
+              fabs(temp - id(last_temp_sent)) >= 0.5) {
+
+            id(last_temp_sent) = temp;
+
+            id(send_temp_hum).execute();
+          }
+
+  # -------- ENVÍO A FIREBASE HEARTBEAT (SIGUE VIVO) --------
+  - interval: 60s
+    then:
+      - http_request.send:
+          method: PATCH
+          url: !secret firebase_sala4_heartbeat
+          request_headers:
+            Content-Type: application/json
+          body: '{"timestamp":{".sv":"timestamp"}}'
+
+  # -------- GRAFICA --------
+  - interval: 60s
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(sensor_ok);
+          then:
+            - http_request.post:
+                url: !lambda |-
+                  auto now = id(esptime).now();
+
+                  char url_buffer[150];
+
+                  sprintf(
+                    url_buffer,
+                    "%s%04d-%02d-%02d/%02d.json",
+                    id(firebase_url_secret).c_str(),
+                    now.year,
+                    now.month,
+                    now.day_of_month,
+                    now.hour
+                  );
+
+                  return std::string(url_buffer);
+
+                request_headers:
+                  Content-Type: application/json
+
+                body: !lambda |-
+                  char body[128];
+
+                  sprintf(
+                    body,
+                    "{\"t\": %.2f, \"ts\": {\".sv\":\"timestamp\"}}",
+                    id(temp_to_send)
+                  );
+
+                  return std::string(body);

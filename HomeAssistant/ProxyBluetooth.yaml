@@ -1,0 +1,79 @@
+esphome:
+  name: bluetooth-proxy
+
+esp32:
+  board: wt32-eth01
+  framework:
+    type: esp-idf
+
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk:
+    pin: GPIO0
+    mode: CLK_EXT_IN
+  phy_addr: 1
+  power_pin: GPIO16
+
+  manual_ip:
+    static_ip: !secret ip_BluetoothProxy
+    gateway: !secret gateway
+    subnet: !secret subnet
+
+# Enable logging
+logger:
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  platform: esphome
+  password: !secret ota_password
+
+web_server:
+  port: 80
+
+esp32_ble_tracker:
+  scan_parameters:
+    active: true
+    interval: 1100ms
+    window: 1100ms
+
+ble_client:
+  - mac_address: F0:C2:D3:10:2A:DC
+    id: corne_ble
+
+bluetooth_proxy:
+  active: true
+
+binary_sensor:
+  - platform: status
+    name: "Status BtProxy"
+
+text_sensor:
+  - platform: version
+    name: Version BtProxy
+
+  - platform: ethernet_info
+    ip_address:
+      name: "IP BtProxy"
+
+sensor:
+  - platform: uptime
+    name: "UpTime BtProxy"
+    update_interval: 60s
+
+  - platform: ble_client
+    type: characteristic
+    ble_client_id: corne_ble
+    name: "Bateria Corne"
+    service_uuid: "180F"
+    characteristic_uuid: "2A19"
+    notify: true
+    update_interval: 60s
+    unit_of_measurement: "%"
+    device_class: battery
